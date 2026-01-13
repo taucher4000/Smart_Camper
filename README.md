@@ -72,13 +72,9 @@ Architektur-Überblick:
 ### Zentrale Steuereinheit
 
 - [Raspberry Pi Compute Module 5 (4 GB RAM, 64 GB eMMC)](https://www.berrybase.de/raspberry-pi-compute-module-5/ram-4gb/wlan-bluetooth-ja/flash-64gb)
-
 - [Raspberry Pi Compute Module 4 IO Board (12V Versorgung möglich)](https://www.berrybase.de/raspberry-pi-compute-module-4-io-board)
-
 - [Metallgehäuse mit Lüfter](https://www.berrybase.de/metall-gehaeuse-fuer-raspberry-pi-compute-module-4-io-board-mit-luefter)
-
 - [WLAN Antennenkit](https://www.berrybase.de/antennenkit-fuer-raspberry-pi-compute-module-4-5)
-
 - [Passiver Kühlkörper](https://www.berrybase.de/raspberry-pi-compute-module-5-passive-cooler)
 
 👉 **Warum diese Kombination?**
