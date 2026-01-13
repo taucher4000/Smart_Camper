@@ -13,9 +13,9 @@
    - [Verkabelung](#verkabelung)
    - [ASCII-Anschlussplan](#ascii-anschlussplan)
 7. [Gaslevel & Außentemperatur](#7-gaslevel--außentemperatur)
-   - [Verkabelung Raspberry Pi ↔ ADS1115](#verkabelung-raspberry-pi-↔-ads1115)
-   - [Gaslevel Sensor](#gaslevel-sensor)
-   - [Außentemperatur](#außentemperatur)
+   - [Verkabelung ADS1115](#verkabelung-ads1115)
+   - [Anschluss Gaslevel Sensor](#anschluss-gaslevel-sensor)
+   - [Anschluss Außentemperatur Sensor](#anschluss-außentemperatur-sensor)
 8. [Display & Bedienung](#8-display--bedienung)
 9. [Interner Buzzer & Relais](#9-interner-buzzer--relais)
    - [Verkabelung und Konfiguration der Relais](#verkabelung-und-konfiguration-der-relais)
@@ -202,7 +202,7 @@ Zum auslesen der Sensoren habe ich mich für einen Analog Ditigal Converter (ADC
 
 Die Steuerung im Home Assistant erfolgt über die [ha-ads1115-component](https://github.com/Elwinmage/ha-ads1115-component) Integration.
 
- #### Verkabelung Raspberry Pi ↔ ADS1115
+ #### Verkabelung ADS1115:
 
 * Pin 1 (3.3V) → VDD
 * Pin 3 (GPIO02 / SDA) → SDA
@@ -210,7 +210,7 @@ Die Steuerung im Home Assistant erfolgt über die [ha-ads1115-component](https:/
 * Pin 9 (GND) → GND
 
 
-### Gaslevel Sensor: 
+### Anschluss Gaslevel Sensor: 
 Ich nutze eine Alugas TravelMate Flasche mit Rotarex-Gassensor, der je nach Füllstand einen Widerstand zwischen 0 und 90 Ohm liefert:  https://shop.frontgas.de/produkt/spezial-sender-fuer-alugas-travelmate-tankflaschen-rotarex/
 
   * Anschluss an **A1** des ADS1115
@@ -255,7 +255,7 @@ Für den Sensor habe ich einen Helper vom Typ `Sensor` als Template erstellt. Na
 **Optional:** Um große Schwankungen des Gaslevel Sensors z.B. währen der Fahrt zu vermeiden, habe ich zusätzlich noch einen Statistik Sensor als Helper angelegt, welcher den Percentil 50 Mittelwert  der letzten 5 Minuten nutzt. Somit erhöht uns senkt  der Sensor nur langsam den Wert.
 
 
-### Außentemperatur
+### Anschluss Außentemperatur Sensor:
 
 Als Außentemperatursensor kommt ein **KTY81-210** zum Einsatz: [https://www.amazon.de/dp/B088V6K54S](https://www.amazon.de/dp/B088V6K54S)
 
@@ -373,7 +373,7 @@ Kabel2 -----------------+
 ```
 OUT1 ------------------> GPIO17 (LOCK)
 OUT2 ------------------> GPIO27 (UNLOCK)
-GND ------------------> Pi GND (Spannungswandler)
+GND -------------------> Pi GND (Spannungswandler)
 ```
 
 Zur Auslesung Optokoppler via GPIO nutze ist die [rpi_gpio](https://github.com/home-assistant/core/tree/dev/homeassistant/components/rpi_gpio) Integation, welche via HACS installiert wird. Nach der Installation kann man die Optokoppler in der `configurtion.yaml` wie folgt konfigurieren:
