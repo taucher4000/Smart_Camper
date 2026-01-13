@@ -22,7 +22,8 @@
 10. [Status der Zentralverriegelung](#10-status-der-zentralverriegelung)
 11. [Raum- & Kühlschranktemperatur](#11-raum--kühlschranktemperatur)
 12. [Frischwasseranzeige](#12-frischwasseranzeige)
-13. [Fazit & Ausblick](#13-fazit--ausblick)
+13. [MaxxFan Steuerung](#13-maxxfan-steuerung)
+14. [Fazit & Ausblick](#14-fazit--ausblick)
 
 
 ---
@@ -422,7 +423,12 @@ Ein ESP32 emuliert zusätzlich das originale Schaudt LT 316 Display damit die or
 ![](images/dashboard_womo_level.jpeg)
 
 ---
-## 13. Fazit & Ausblick
+## 13. MaxxFan Steuerung
+
+🚧 Inhalt folgt
+
+---
+## 14. Fazit & Ausblick
 
 Ich entwickle das System ständig weiter und werde diese Dokumentation von Zeit zu Zeit aktualisieren. Für Anregungen oder Verbesserungsvorschläge bin ich jederzeit offen.
 
