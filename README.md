@@ -23,7 +23,8 @@
 11. [Raum- & Kühlschranktemperatur](#11-raum--kühlschranktemperatur)
 12. [Frischwasseranzeige](#12-frischwasseranzeige)
 13. [MaxxFan Steuerung](#13-maxxfan-steuerung)
-14. [Fazit & Ausblick](#14-fazit--ausblick)
+14. [Solaranzeige](#14-solaranzeige)
+15. [Fazit & Ausblick](#15-fazit--ausblick)
 
 
 ---
@@ -432,10 +433,135 @@ Ein ESP32 emuliert zusätzlich das originale Schaudt LT 316 Display damit die or
 ---
 ## 13. MaxxFan Steuerung
 
-🚧 Inhalt folgt
+Als lüftung habe ich einen MaxxFan Lüfter verbaut. Dieser wird via Infrarot und einem ESP32 mit ESPHome gesteuert. Dafür habe ich das [SmartyVan/MaxxAir-Fan-ESPHome](https://github.com/SmartyVan/MaxxAir-Fan-ESPHome) Projekt genutzt. Die gesamte Steuerung habe ich hinter der MaxFan Verkleidung versteckt und den ESP32 mittels einem [DC-DC Step Down Converter](https://amzn.eu/d/9aFi5Lt) mit Strom versorg.
+
+![](images/dashboard_maxxfan.jpeg)
+
+
 
 ---
-## 14. Fazit & Ausblick
+## 14. Solaranzeige
+
+Als Solar Regler nutze ich einen `VOTRONIC SOLAR LADEREGLER SR 220`. Dieser hat einen RJ11 Anschluss um ein Display anzuschließen. Dieser Anschluss wird genutzt um mit dem ESPHome Projekt von [syssi/esphome-votronic](https://github.com/syssi/esphome-votronic) den Solarregler auszulesen.
+
+Der ESPHome Sensor ist wie folgt konfiguriert und sendet die Daten via MQTT zu Home Assistant:
+
+```
+substitutions:
+  name: votronic-solar
+  friendly_name: Votronic Solar
+  device_description: "Monitor a Votronic Solar Charger via the display link port (UART)"
+  external_components_source: github://syssi/esphome-votronic@main
+  tx_pin: GPIO17
+  rx_pin: GPIO16
+  rx_timeout: 150ms
+
+esphome:
+  name: ${name}
+  comment: ${device_description}  
+  friendly_name: ${friendly_name}
+
+esp32:
+  board: az-delivery-devkit-v4
+  framework:
+    type: arduino
+
+external_components:
+  - source: ${external_components_source}
+    refresh: 0s
+
+web_server:
+  port: 80
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  manual_ip:
+    static_ip: X.X.X.X
+    gateway: X.X.X.X
+    subnet: X.X.X.X
+
+ota:
+  - platform: esphome
+    password: "XXXX"
+
+logger:
+
+mqtt:
+  broker:  X.X.X.X
+  username: <username>
+  password: <password>
+  discovery: True
+  birth_message:
+    topic: votronic-solar/status
+    payload: online
+    retain: false
+  will_message:
+    topic: votronic-solar/status
+    payload: offline
+    retain: false
+
+uart:
+  - id: uart_0
+    baud_rate: 1000
+    tx_pin: ${tx_pin}
+    rx_pin: ${rx_pin}
+
+votronic:
+  - id: votronic0
+    uart_id: uart_0
+    rx_timeout: ${rx_timeout}
+    throttle: 2s
+
+binary_sensor:
+  - platform: votronic
+    votronic_id: votronic0
+    charging:
+      name: "${friendly_name} charging"
+    discharging:
+      name: "${friendly_name} discharging"
+
+    pv_controller_active:
+      name: "${friendly_name} pv controller active"
+    pv_current_reduction:
+      name: "${friendly_name} pv current reduction"
+    pv_aes_active:
+      name: "${friendly_name} pv aes active"
+
+sensor:
+  - platform: votronic
+    votronic_id: votronic0
+    battery_voltage:
+      name: "${friendly_name} battery voltage"
+    pv_voltage:
+      name: "${friendly_name} pv voltage"
+    pv_current:
+      name: "${friendly_name} pv current"
+    pv_power:
+      name: "${friendly_name} pv power"
+    pv_controller_temperature:
+      name: "${friendly_name} pv controller temperature"
+    pv_mode_setting_id:
+      name: "${friendly_name} pv mode setting id"
+    pv_battery_status_bitmask:
+      name: "${friendly_name} pv battery status bitmask"
+    pv_controller_status_bitmask:
+      name: "${friendly_name} pv controller status bitmask"
+
+text_sensor:
+  - platform: votronic
+    votronic_id: votronic0
+    pv_mode_setting:
+      name: "${friendly_name} pv mode setting"
+    pv_battery_status:
+      name: "${friendly_name} pv battery status"
+    pv_controller_status:
+      name: "${friendly_name} pv controller status"
+
+```
+
+---
+## 15. Fazit & Ausblick
 
 Ich entwickle das System ständig weiter und werde diese Dokumentation von Zeit zu Zeit aktualisieren. Für Anregungen oder Verbesserungsvorschläge bin ich jederzeit offen.
 
