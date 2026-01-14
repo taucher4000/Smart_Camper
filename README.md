@@ -64,7 +64,13 @@ Architektur-Überblick:
 - Visualisierung über Dashboards
 - möglichst wenig ESP32/ESPHome, stattdessen direkte GPIO-, UART-, I²C- und Bluetooth-Anbindungen
 
-![](images/view_inside_case.jpeg)
+
+
+| | |
+|-|-|
+|![](images/view_inside_case.jpeg)|![](images/case_top_view.jpeg)|
+|![](images/case_left_view.jpeg)|![](images/case_front_view.jpeg)|
+
 
 ---
 
@@ -157,6 +163,8 @@ Es sind keine zusätzlichen ESP32 oder Funkmodule notwendig.
 
 - Home Assistant Add-on https://github.com/taucher4000/HA_InetBox
 
+![](images/dashboard_truma.jpeg)
+
 ### Verkabelung:
 * GND → GND
 * GPIO14 (TXD) → RX (LIN Adapter)
@@ -185,8 +193,7 @@ Es sind keine zusätzlichen ESP32 oder Funkmodule notwendig.
 Für eine saubere Verbindung ist eine RJ12-Buchse im Gehäuse verbaut:
 https://www.berrybase.de/bel-fuse-rj12-buchsensteckverbinder-zuverlaessige-900-winkelverbindung-mit-6-polen-und-tht-montage
 
-![](images/dashboard_truma.jpeg)
-
+![](images/case_truma_connector.jpeg)
 
 ---
 
