@@ -268,40 +268,54 @@ Als Außentemperatursensor kommt ein **KTY81-210** zum Einsatz: [https://www.ama
   * Referenzwiderstand: **15 KOhm**
   * Messung gegen Masse
 
-Für den Sensor habe ich einen Helper vom Typ `Sensor` als Template erstellt. Nachfolgend das Template zum umwandeln der ADC Spannung in einen Temperatur-Wert. Dabei wird die Umrechnung basierend auf den Steinhart-Hart Koeffizienten benutzt:
+Für den Sensor habe ich einen Helper vom Typ `Sensor` als Template erstellt. Nachfolgend das Template zum umwandeln der ADC Spannung in einen Temperatur-Wert:
 
 
 ```
-{% set adc_voltage = states('sensor.adc_aussentemperatur') | float(0) %}
-{% set supply_voltage = 3.3 %}
-{% set reference_resistance_ohm = 15000.0 %}
-{% set temperature_offset_celsius = -3.0 %}  {# <-- Hier kann ein Offset einstellen (z. B. +1.5 oder -2.3) #}
+{% set adc_spannung = states('sensor.adc_aussentemperatur') | float(0) %}
+{% set versorgungsspannung = 3.3 %}
+{% set widerstand_referenz = 15000.0 %}
+{% set temperatur_offset = -7.5 %}
 
-{# safeguard: gültige Spannung (>0 und <Vcc) #}
-{% if adc_voltage <= 0 or adc_voltage >= supply_voltage %}
+{% if adc_spannung <= 0.05 or adc_spannung >= versorgungsspannung - 0.05 %}
   unavailable
 {% else %}
-  {# Widerstand (Variante: Rref oben, Sensor nach GND) #}
-  {% set sensor_resistance_ohm = reference_resistance_ohm * (adc_voltage / (supply_voltage - adc_voltage)) %}
+  {# Berechnung des Sensor-Widerstands (R2 im Spannungsteiler) #}
+  {% set sensor_widerstand = widerstand_referenz * (adc_spannung / (versorgungsspannung - adc_spannung)) %}
 
-  {# Steinhart-Hart Koeffizienten (aus NXP-Typwerten 0/25/50°C) #}
-  {% set steinhart_A = 0.02701318840499522 %}
-  {% set steinhart_B = -0.003952305480795269 %}
-  {% set steinhart_C = 0.000014533012200013872 %}
+  {# Stützpunkte aus dem Datenblatt (Temperatur °C, Widerstand Ohm) #}
+  {% set datenblatt_tabelle = [
+    (-55, 980), (-50, 1030), (-40, 1135), (-30, 1247), (-20, 1367), 
+    (-10, 1495), (0, 1630), (10, 1772), (20, 1922), (25, 2000), 
+    (30, 2080), (40, 2245), (50, 2417), (60, 2597), (70, 2785), 
+    (80, 2980), (90, 3182), (100, 3392), (110, 3607), (120, 3817), 
+    (125, 3915), (130, 4008), (140, 4166), (150, 4280)
+  ] %}
 
-  {% set ln_sensor_resistance = log(sensor_resistance_ohm) %}
-  {% set inverse_temperature = steinhart_A + steinhart_B * ln_sensor_resistance + steinhart_C * ln_sensor_resistance**3 %}
+  {% set berechnung = namespace(temperatur=none) %}
+  
+  {# Suche der passenden Tabellenzeile und lineare Interpolation #}
+  {% for i in range(datenblatt_tabelle | length - 1) %}
+    {% set t_unten, r_unten = datenblatt_tabelle[i] %}
+    {% set t_oben, r_oben = datenblatt_tabelle[i+1] %}
+    
+    {% if sensor_widerstand >= r_unten and sensor_widerstand <= r_oben %}
+      {% set anteil = (sensor_widerstand - r_unten) / (r_oben - r_unten) %}
+      {% set berechnung.temperatur = t_unten + anteil * (t_oben - t_unten) %}
+    {% endif %}
+  {% endfor %}
 
-  {% if inverse_temperature <= 0 %}
-    unavailable
+  {# Ergebnisausgabe mit Offset und Rundung auf 1 Nachkommastelle #}
+  {% if berechnung.temperatur is not none %}
+    {{ (berechnung.temperatur + temperatur_offset) | round(1) }}
   {% else %}
-    {% set temperature_kelvin = 1 / inverse_temperature %}
-    {% set temperature_celsius = (temperature_kelvin - 273.15) + temperature_offset_celsius %}
-
-    {% if temperature_celsius < -50 or temperature_celsius > 100 %}
-      unavailable
+    {# Fallback für Werte leicht außerhalb der Tabelle #}
+    {% if sensor_widerstand < datenblatt_tabelle[0][1] %}
+      {{ (datenblatt_tabelle[0][0] + temperatur_offset) | round(1) }}
+    {% elif sensor_widerstand > datenblatt_tabelle[-1][1] %}
+      {{ (datenblatt_tabelle[-1][0] + temperatur_offset) | round(1) }}
     {% else %}
-      {{ temperature_celsius | round(1) }}
+      unavailable
     {% endif %}
   {% endif %}
 {% endif %}
@@ -317,7 +331,12 @@ Als zentrales Bedien- und Anzeigedisplay nutze ich ein [Waveshare 5" HDMI AMOLED
 
 Das Display zeigt das normale Home-Assistant-Dashboard und schaltet sich nach Inaktivität automatisch ab.
 
-![](images/display.jpeg)
+
+| | |
+|-|-|
+|![](images/display_1.jpeg)|![](images/display_2.jpeg)|
+|![](images/display_3.jpeg)|![](images/display_4.jpeg)|
+
 
 ---
 
@@ -365,13 +384,10 @@ Zur galvanischen Trennung nutze ich einen [2-Kanal-Optokoppler](https://www.amaz
 
 **Leitungen vom Fahrzeug zum Hailege 2-Kanal Modul:**
 ```
-Kabel1 -----------------+
-                        +----> IN1 (Kanal1, LOCK)
-                        +----> GND2 (Kanal2, UNLOCK)
-
-Kabel2 -----------------+
-                        +----> GND1 (Kanal1, LOCK)
-                        +----> IN2 (Kanal2, UNLOCK)
+Kabel 1 LOCK ------------------> IN1
+Fahrzeug Masse ----------------> GND1
+Kabel 2 UNLOCK ----------------> IN2
+Fahrzeug Masse ----------------> GND2
 ```
 
 **Hailege 2-Kanal Modul zum Raspberry Pi:**
@@ -444,7 +460,7 @@ Als lüftung habe ich einen MaxxFan Lüfter verbaut. Dieser wird via Infrarot un
 
 Als Solar Regler nutze ich einen `VOTRONIC SOLAR LADEREGLER SR 220`. Dieser hat einen RJ11 Anschluss um ein Display anzuschließen. Dieser Anschluss wird genutzt um mit dem ESPHome Projekt von [syssi/esphome-votronic](https://github.com/syssi/esphome-votronic) den Solarregler auszulesen.
 
-Der ESPHome Sensor ist wie folgt konfiguriert und sendet die Daten via MQTT zu Home Assistant:
+Der ESPHome Sensor ist wie folgt konfiguriert und sendet die Daten via ESPHome zu Home Assistant:
 
 ```
 substitutions:
@@ -487,19 +503,10 @@ ota:
 
 logger:
 
-mqtt:
-  broker:  X.X.X.X
-  username: <username>
-  password: <password>
-  discovery: True
-  birth_message:
-    topic: votronic-solar/status
-    payload: online
-    retain: false
-  will_message:
-    topic: votronic-solar/status
-    payload: offline
-    retain: false
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "XXXXXXX"
 
 uart:
   - id: uart_0
@@ -520,7 +527,6 @@ binary_sensor:
       name: "${friendly_name} charging"
     discharging:
       name: "${friendly_name} discharging"
-
     pv_controller_active:
       name: "${friendly_name} pv controller active"
     pv_current_reduction:
