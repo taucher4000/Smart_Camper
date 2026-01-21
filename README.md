@@ -332,6 +332,89 @@ Als zentrales Bedien- und Anzeigedisplay nutze ich ein [Waveshare 5" HDMI AMOLED
 
 Das Display zeigt das normale Home-Assistant-Dashboard und schaltet sich nach Inaktivität automatisch ab.
 
+Damit das Display Orgnungsgemäß mit Home Assistent und dem Raspberry Pi funktioniert, musste ich noch folgende Konfigurationen in der `config.txt` und der `cmdline.txt` durchführen:
+
+config.txt:
+```
+dtoverlay=vc4-kms-v3d
+hdmi_force_hotplug=1 
+config_hdmi_boost=10
+max_usb_current=1
+disable_overscan=1
+hdmi_group=2
+hdmi_mode=87
+hdmi_timings=960 0 190 4 32 544 0 10 10 12 0 0 0 60 0 41000000 3
+hdmi_blanking=0
+```
+
+cmdline.txt: 
+```
+video=HDMI-A-1:960x544M@60D
+```
+
+Außerdem habe ich das folgende JacaScript in `/www/touch-fix.js` kopiert und das Script als Resource mit dem Pfad `/local/touch-fix.js` unter `Einstellungen-->Dashboards-->Resourcen` hinzugefüht. Dieses Script sorgt dafür, dass beim "aufwecken" des Displays der erste Touch nicht als input verwendet wird. Dies ist hilfreich da ansonsten beim aufwecken des Displays nach dem Screen-Timeout schon eine Aktion ausgeführt wird.
+
+/www/touch-fix.js:
+```
+(function() {
+    // --- BROWSER-CHECK ---
+    // Prüft, ob 'luakit' im User-Agent vorkommt. Falls nicht: Skript beenden.
+    if (!navigator.userAgent.toLowerCase().includes('x11')) {
+        console.log("Luakit wurde nicht erkannt - Touch-Fix wird deaktiviert. (userAgent: " + navigator.userAgent.toLowerCase() + ")");
+
+        return; 
+    }
+    console.log("Luakit erkannt - Touch-Fix wird aktiviert.");
+
+    // --- KONFIGURATION ---
+    const DEBOUNCE_WAIT = 1000;  // Zeit in ms, die nach dem Aufwachen ignoriert wird (1 Sek)
+    const IDLE_TIME = 10000;     // Ab wann gilt das Display als "schlafend" (10 Sek)
+    // ---------------------
+
+    let lastInteraction = Date.now();
+    let isWakingUp = false;
+
+    function handleTouch(e) {
+        const now = Date.now();
+        const timeSinceLastClick = now - lastInteraction;
+
+        // PRÜFUNG: Ist das Display im "Schlaf-Modus"?
+        if (timeSinceLastClick > IDLE_TIME && !isWakingUp) {
+            isWakingUp = true;
+            
+            // Blockiere diesen ersten Klick komplett
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            
+            console.log("Debounce: Aufwach-Klick blockiert.");
+
+            // Nach Ablauf der DEBOUNCE_WAIT Zeit wieder normale Klicks erlauben
+            setTimeout(() => {
+                isWakingUp = false;
+                console.log("Debounce: System bereit für Eingaben.");
+            }, DEBOUNCE_WAIT);
+
+            lastInteraction = now;
+            return false;
+        }
+
+        // Wenn wir uns gerade in der Aufwach-Phase befinden, ebenfalls blockieren
+        if (isWakingUp) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
+
+        lastInteraction = now;
+    }
+
+    // Registrierung für Luakit/WebKit (Capture-Mode = true ist wichtig!)
+    document.addEventListener('touchstart', handleTouch, true);
+    document.addEventListener('mousedown', handleTouch, true);
+    document.addEventListener('click', handleTouch, true);
+})();
+```
 
 | | |
 |-|-|
