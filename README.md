@@ -332,6 +332,8 @@ Als zentrales Bedien- und Anzeigedisplay nutze ich ein [Waveshare 5" HDMI AMOLED
 
 Das Display zeigt das normale Home-Assistant-Dashboard und schaltet sich nach Inaktivität automatisch ab.
 
+### Konfiguration des Displays
+
 Damit das Display Orgnungsgemäß mit Home Assistent und dem Raspberry Pi funktioniert, musste ich noch folgende Konfigurationen in der `config.txt` und der `cmdline.txt` durchführen:
 
 config.txt:
@@ -352,68 +354,91 @@ cmdline.txt:
 video=HDMI-A-1:960x544M@60D
 ```
 
-Außerdem habe ich das folgende JacaScript in `/www/touch-fix.js` kopiert und das Script als Resource mit dem Pfad `/local/touch-fix.js` unter `Einstellungen-->Dashboards-->Resourcen` hinzugefüht. Dieses Script sorgt dafür, dass beim "aufwecken" des Displays der erste Touch nicht als input verwendet wird. Dies ist hilfreich da ansonsten beim aufwecken des Displays nach dem Screen-Timeout schon eine Aktion ausgeführt wird.
+### Bildschirm Timeout und aufwecken des Displays
 
-/www/touch-fix.js:
+Das Waveshare 5" HDMI AMOLED Display hat leider das Problem, dass es bei Nutzung des regulären Hardware-Timeouts (DPMS) ca. 1–2 Sekunden benötigt, um aus dem Standby aufzuwachen. Diese Verzögerung hat mich gestört. Daher habe ich eine softwareseitige Lösung implementiert:
+
+- **Hardware-Timeout deaktivieren:** Ich habe im HAOS Kiosk Add-on den SCREEN_TIMEOUT auf 0 gestellt. Dies verhindert, dass das Display das HDMI-Signal verliert und in den hardwareseitigen Schlafmodus wechselt.
+- **Software-Blackout via JavaScript:** Stattdessen habe ich ein JavaScript (`/www/luakit-waveshare-fix.js`) als Custom Resource unter Einstellungen -> Dashboards -> Ressourcen hinzugefügt. Dieses Skript legt nach einer definierten Inaktivitätszeit ein komplett schwarzes Overlay über die Benutzeroberfläche.
+
+Da bei einem AMOLED-Panel jeder Pixel einzeln leuchtet, ist ein tiefschwarzes Bild energetisch nahezu mit dem Ausschalten gleichzusetzen (die Pixel sind physisch aus). **Ergebnis:** Durch den dauerhaft aktiven HDMI-Sync wacht das Display bei Berührung ohne Verzögerung (Instant-Wakeup) auf. Gleichzeitig verhindert das Skript durch einen kurzen „Debounce“-Zeitraum, dass die erste Berührung beim Aufwachen bereits eine ungewollte Aktion im Dashboard auslöst.  
+
+/www/luakit-waveshare-fix.js:
 ```
 (function() {
-    // --- BROWSER-CHECK ---
-    // Prüft, ob 'luakit' im User-Agent vorkommt. Falls nicht: Skript beenden.
-    if (!navigator.userAgent.toLowerCase().includes('x11')) {
-        console.log("Luakit wurde nicht erkannt - Touch-Fix wird deaktiviert. (userAgent: " + navigator.userAgent.toLowerCase() + ")");
-
-        return; 
-    }
-    console.log("Luakit erkannt - Touch-Fix wird aktiviert.");
-
     // --- KONFIGURATION ---
-    const DEBOUNCE_WAIT = 1000;  // Zeit in ms, die nach dem Aufwachen ignoriert wird (1 Sek)
-    const IDLE_TIME = 10000;     // Ab wann gilt das Display als "schlafend" (10 Sek)
+    const IDLE_TIME = 240000;      // Zeit bis zum "Ausschalten" (4 Minuten)
+    const DEBOUNCE_WAIT = 500;     // Kurze Sperre nach dem Aufwachen (0.5 Sek)
     // ---------------------
 
+    // Sicherheitschecks (Browser)
+    if (!navigator.userAgent.toLowerCase().includes('x11')) return;
+
     let lastInteraction = Date.now();
-    let isWakingUp = false;
+    let isSleeping = false;
 
-    function handleTouch(e) {
-        const now = Date.now();
-        const timeSinceLastClick = now - lastInteraction;
+    // Overlay-Element erstellen (Der schwarze Vorhang)
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: black;
+        z-index: 999999;
+        display: none;
+        cursor: none;
+    `;
+    document.body.appendChild(overlay);
 
-        // PRÜFUNG: Ist das Display im "Schlaf-Modus"?
-        if (timeSinceLastClick > IDLE_TIME && !isWakingUp) {
-            isWakingUp = true;
-            
-            // Blockiere diesen ersten Klick komplett
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-            
-            console.log("Debounce: Aufwach-Klick blockiert.");
-
-            // Nach Ablauf der DEBOUNCE_WAIT Zeit wieder normale Klicks erlauben
-            setTimeout(() => {
-                isWakingUp = false;
-                console.log("Debounce: System bereit für Eingaben.");
-            }, DEBOUNCE_WAIT);
-
-            lastInteraction = now;
-            return false;
-        }
-
-        // Wenn wir uns gerade in der Aufwach-Phase befinden, ebenfalls blockieren
-        if (isWakingUp) {
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
-        }
-
-        lastInteraction = now;
+    function sleep() {
+        overlay.style.display = 'block';
+        isSleeping = true;
+        console.log("AMOLED-Schlafmodus aktiviert (HDMI aktiv)");
     }
 
-    // Registrierung für Luakit/WebKit (Capture-Mode = true ist wichtig!)
-    document.addEventListener('touchstart', handleTouch, true);
-    document.addEventListener('mousedown', handleTouch, true);
-    document.addEventListener('click', handleTouch, true);
+    function wakeUp(e) {
+        if (isSleeping) {
+            // Verhindert den Klick auf das Dashboard unter dem Overlay
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+            }
+            
+            overlay.style.display = 'none';
+            
+            // Kurze Debounce-Phase einleiten
+            setTimeout(() => {
+                isSleeping = false;
+                console.log("System bereit.");
+            }, DEBOUNCE_WAIT);
+            
+            lastInteraction = Date.now();
+            return false;
+        }
+        lastInteraction = Date.now();
+    }
+
+    // Timer zur Überprüfung der Inaktivität
+    setInterval(() => {
+        if (!isSleeping && (Date.now() - lastInteraction > IDLE_TIME)) {
+            sleep();
+        }
+    }, 5000);
+
+    // Event-Listener zum Aufwachen
+    overlay.addEventListener('touchstart', wakeUp, { capture: true, passive: false });
+    overlay.addEventListener('mousedown', wakeUp, { capture: true, passive: false });
+    
+    // Interaktion loggen, wenn das Display wach ist
+    document.addEventListener('touchstart', () => { lastInteraction = Date.now(); }, true);
+    document.addEventListener('mousedown', () => { lastInteraction = Date.now(); }, true);
+
+    console.log("Instant-Wakeup Script für AMOLED geladen.");
 })();
+
 ```
 
 | | |
