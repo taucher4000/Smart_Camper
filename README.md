@@ -325,7 +325,8 @@ Für den Sensor habe ich einen Helper vom Typ `Sensor` als Template erstellt. Na
 
 ## 8. Display & Bedienung
 
-Als zentrales Bedien- und Anzeigedisplay nutze ich ein [Waveshare 5" HDMI AMOLED](https://www.welectron.com/Waveshare-19299-5inch-HDMI-AMOLED) Display welches via HDMI für Bild und USB für Touch-Eingabe angeschlossen ist.
+Als zentrales Bedien- und Anzeigedisplay nutze ich ein [Waveshare 5" HDMI AMOLED](https://www.welectron.com/Waveshare-19299-5inch-HDMI-AMOLED) Display welches via HDMI für Bild und USB für Touch-Eingabe angeschlossen ist. Als Rahmen für das Display habe ich mir einen eigenen Rahmen mit dem 3D-Drucker gedruckt. Dieser Rahmen passt perfekt in die vorhandene Öffnung des originalen Truma inetX Pannels. Die Datei zum drucken ist [hier](files/display-rahmen.f3d) zu finden.
+
 
 - HAOS Kiosk Add-on: https://github.com/puterboy/HAOS-kiosk
 
