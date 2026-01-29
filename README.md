@@ -228,32 +228,26 @@ Für den Sensor habe ich einen Helper vom Typ `Sensor` als Template erstellt. Na
 {% set adc_voltage = states('sensor.adc_gaslevel') | float(0) %}
 {% set supply_voltage = 3.3 %}
 {% set reference_resistance_ohm = 100.0 %}
-{% set sensor_max_resistance_ohm = 90.0 %}
-{% set empty_deadzone_ohm = 3 %}   {# Widerstand, der als "leer" gilt #}
+{% set sensor_min_resistance_ohm = 13.2 %} {# Widerstand ab wann die Flasche als leer gilt #}
+{% set sensor_max_resistance_ohm = 96.0 %} {# Maximal Widerstand der als 100% gilt #}
+
+{% set resistance_span = sensor_max_resistance_ohm - sensor_min_resistance_ohm %}
 
 {# Ungültige ADC-Spannung abfangen #}
 {% if adc_voltage <= 0 or adc_voltage >= supply_voltage %}
   unavailable
 {% else %}
   {# Sensorwiderstand aus Spannungsteiler berechnen #}
-  {% set sensor_resistance_ohm =
-      reference_resistance_ohm
-      * (adc_voltage / (supply_voltage - adc_voltage)) %}
+  {% set sensor_resistance_ohm = reference_resistance_ohm * (adc_voltage / (supply_voltage - adc_voltage)) %}
 
-  {# Totzone für leere Flasche #}
-  {% if sensor_resistance_ohm <= empty_deadzone_ohm %}
+  {% if sensor_resistance_ohm <= sensor_min_resistance_ohm %}
     0
+  {% elif sensor_resistance_ohm >= sensor_max_resistance_ohm %}
+    100
   {% else %}
     {% set fill_level_percent =
-        (sensor_resistance_ohm / sensor_max_resistance_ohm) * 100 %}
-
-    {% if fill_level_percent < 0 %}
-      0
-    {% elif fill_level_percent > 100 %}
-      100
-    {% else %}
-      {{ fill_level_percent | round(0) }}
-    {% endif %}
+        ((sensor_resistance_ohm - sensor_min_resistance_ohm) / resistance_span) * 100 %}
+    {{ fill_level_percent | round(0) }}
   {% endif %}
 {% endif %}
 ```
