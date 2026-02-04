@@ -554,6 +554,35 @@ Ein ESP32 emuliert zusätzlich das originale Schaudt LT 316 Display damit die or
 
 Als lüftung habe ich einen MaxxFan Lüfter verbaut. Dieser wird via Infrarot und einem ESP32 mit ESPHome gesteuert. Dafür habe ich das [SmartyVan/MaxxAir-Fan-ESPHome](https://github.com/SmartyVan/MaxxAir-Fan-ESPHome) Projekt genutzt. Die gesamte Steuerung habe ich hinter der MaxFan Verkleidung versteckt und den ESP32 mittels einem [DC-DC Step Down Converter](https://amzn.eu/d/9aFi5Lt) mit Strom versorg.
 
+Da das originale ESPHome Projekt auf ESP8266 basiert und ich dieses auf einem ESP32 nutzen möchte, habe ich folgende Änderungen gemacht:
+
+**ESP-Plattform ändern**
+```
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+```
+(den alten esp8266: Block entfernen)
+
+**GPIO statt D-Pins verwenden -** Beim ESP32 funktionieren keine D4/D6 Bezeichnungen.
+```
+substitutions:
+  ir_led_pin: "4"
+```
+Geeignete Pins: 4, 5, 18, 19, 21–23 (Nicht verwenden: 0, 2, 12, 15 (Boot-Pins))
+
+**Status-LED entfernt - ** Falls keine LED genutzt wird, den kompletten status_led: Block löschen.
+IR-Senden stabil einstellen
+```
+remote_transmitter:
+  pin: "${ir_led_pin}"
+  carrier_duty_percent: 50%
+  non_blocking: false
+```
+
+
+
 ![](images/dashboard_maxxfan.jpeg)
 
 
