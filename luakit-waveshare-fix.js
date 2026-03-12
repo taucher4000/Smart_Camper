@@ -16,6 +16,8 @@
     window.addEventListener('wheel', e => e.preventDefault(), { passive: false });
     window.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 
+    // -- 117% Zoomen da die Zoom-Funktion im HAOS Display Add-On nicht zuverlässig funktioniert--
+    document.documentElement.style.zoom = "1.17";
 
     // Overlay-Element erstellen (Der schwarze Vorhang)
     const overlay = document.createElement('div');
@@ -29,7 +31,6 @@
         z-index: 999999;
         display: none;
         cursor: none;
-        transition: opacity 0.3s ease;
     `;
     document.body.appendChild(overlay);
 
