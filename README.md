@@ -67,10 +67,24 @@ Architektur-Überblick:
 
 
 
+#### Gehäuse - Version 1 (original CM 5 IO Board Gehäuse):
 | | |
 |-|-|
 |![](images/view_inside_case.jpeg)|![](images/case_top_view.jpeg)|
 |![](images/case_left_view.jpeg)|![](images/case_front_view.jpeg)|
+
+#### Gehäuse Version 2 (3D Druck)
+Da ich bei dem original Gehäuse ein thermisches Problem hatte, und die Core CPU Temperatur bei höheren Außentemperaturen über 65°C lag, habe ich ein neues Gehäuse für dem 3D Drucker konstruiert. Dieses ist höher und erhalbt es einen 92mm Gehäuselöfter zu installieren. Dieser mit 3,3V betrieben ist absolut geräuschlos und kann 24/7 laufen.
+
+Als Lüter habe ich micht für einen **ARCTIC P9 Silent** entschieden.
+
+[die 3mf Datei kann hier heruntergeladen werden.](files/Gehäuse.3mf)
+
+| | |
+|-|-|
+|![](images/view_inside_case_new.jpeg)|![](images/case_side_view_new.jpeg)|
+|![](images/case_top_view_new.jpeg)|
+
 
 
 ---
